@@ -12,11 +12,11 @@ Generate interpolated graphical splines using control points.
 ## Compilation
 - External Libraries: uses SDL2 & OpenGL 3.3 & GLM
 - Requirements: MinGW C++ compiler "g++" added to system environment variables
-- Local Directory Contents: shaders &amp lib &amp util &amp Makefile &amp main source file
+- Local Directory Contents: shaders & lib & util & Makefile & main source file
 - Set Up Directory: "make prepare"
 - Compile: "make" produces "curves.exe" 
 
-## Relevant Terminology &amp Properties
+## Relevant Terminology & Properties
 - Formula: describes how the curve is generated.
 - Control points: direct the curve's progression, together forming a control polytope.
 - Knots: direct a spline's progression, giving it's continuity across pieces implicitly through an extended knot vector.
@@ -28,7 +28,7 @@ Generate interpolated graphical splines using control points.
 ### General Definition
 Parametric curves are used to describe smooth functions across space. They can be displayed graphically by sampling points along their formula.
 
-### Types &amp Properties
+### Types & Properties
 
 #### Bezier (https://en.wikipedia.org/wiki/B%C3%A9zier_curve)
 - Represents the curve using Bernstein basis polynomials, which can be processed into a summation.
@@ -53,14 +53,14 @@ Piecewise polynomials are used to describe an overall curve function. Their flex
 - Types of splines, e.g. https://en.wikipedia.org/wiki/Composite_B%C3%A9zier_curve, https://en.wikipedia.org/wiki/B-spline
 - Types of surface, e.g. https://en.wikipedia.org/wiki/B%C3%A9zier_surface
 
-<!-- ### Logical &amp Debugging -->
+<!-- ### Logical & Debugging -->
 
 ### Completion
 Overall: allow the display of any continuous curves/surfaces representable as data inside wavefront files
 - 3D curves
 - bezier surfaces
 - more fundamental curve/spline types; e.g. Hermite, NURBS (delay ones not used in .obj files)
-- read &amp write data from .obj files (wavefront file structure)
+- read & write data from .obj files (wavefront file structure)
 
 ### Feature
 - higher continuity options for cubic+ curves... highest-possible continuity for a specific and/or evenly-sized curve size? incremental continuities up to "Cn", n = curve points(?)?
@@ -75,15 +75,15 @@ Overall: allow the display of any continuous curves/surfaces representable as da
 - remove whiteflash on first window frame; prevented on WIN32 by suppressing WM_ERASEBKGND message or setting hdr_background to NULL; how to suppress for SDL?
 	- https://stackoverflow.com/questions/10335488/white-flash-when-creating-an-opengl-render-context-on-windows
 	- https://stackoverflow.com/questions/12073721/what-is-the-correct-way-to-suppress-wm-erasebkgnd
-- data management &amp storage structure, for conducting atomic operations (e.g. add/remove points and curves whilst updating gpu data) in an enclosed/elegant fashion
-- smart shading template structures for point-/line-/vector- -renderers/-rendering, to reduce boilerplate renderer &amp gpu data code
+- data management & storage structure, for conducting atomic operations (e.g. add/remove points and curves whilst updating gpu data) in an enclosed/elegant fashion
+- smart shading template structures for point-/line-/vector- -renderers/-rendering, to reduce boilerplate renderer & gpu data code
 
 ### Optimise
 - eventually only compute the changed parts of data during input
 - pre-compute vectors for vector shader... worth having extra buffer for vector data?
 - limit update ranges for spline data by splitting curve vector into spline vector of curve vectors
-	- store data indices &amp update signals in separate vectors; use these to flag which curves to update data &amp buffers for after each input
-	- interchange curve &amp spline indices; curve indices are on same buffer, spline indices use 
+	- store data indices & update signals in separate vectors; use these to flag which curves to update data & buffers for after each input
+	- interchange curve & spline indices; curve indices are on same buffer, spline indices use 
 
 ### Optional
-- convert window position &amp motion to [-/+ xAspectRatio, -/+ yAspectRatio]; maybe automatically compute this change inside window by holding "viewport" as a member variable?
+- convert window position & motion to [-/+ xAspectRatio, -/+ yAspectRatio]; maybe automatically compute this change inside window by holding "viewport" as a member variable?
