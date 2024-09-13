@@ -3,9 +3,10 @@ CXXFLAGS := -o
 
 BIN := temp/
 LIBS := lib/
+OUT := deploy/
 LINKS := -lopenGL32 -lmingw32 -lSDL2main -lSDL2 -lglew32
 OBJECTS := $(BIN)camera.o $(BIN)window.o $(BIN)shader.o $(BIN)curve.o
-MAIN := $(CXX) $(CXXFLAGS) curves.exe $(OBJECTS) main.cpp $(LINKS)
+MAIN := $(CXX) $(CXXFLAGS) $(OUT)curves.exe $(OBJECTS) main.cpp $(LINKS)
 
 main: main.cpp $(OBJECTS)
 	$(MAIN)
@@ -23,7 +24,7 @@ $(BIN)curve.o: $(LIBS)curve.cpp $(LIBS)curve.hpp
 	$(CXX) -c $(CXXFLAGS) $(BIN)curve.o $(LIBS)curve.cpp
 
 prepare:
-	mkdir temp
+	mkdir $(BIN) $(OUT)
 
 clean:
 	cd temp & del /q /s "*.o" & cd .. & $(MAKE) --no-print-directory main
