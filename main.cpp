@@ -1,5 +1,5 @@
 
-#include "lib/window.hpp" // windowing
+#include "lib/window/window.hpp" // windowing
 #include "lib/camera.hpp" // viewport
 #include "lib/shader.hpp" // shader program
 #include "lib/curve.hpp" // curves & splines

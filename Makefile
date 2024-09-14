@@ -14,8 +14,8 @@ main: main.cpp $(OBJECTS)
 $(BIN)camera.o: $(LIBS)camera.cpp $(LIBS)camera.hpp
 	$(CXX) -c $(CXXFLAGS) $(BIN)camera.o $(LIBS)camera.cpp
 
-$(BIN)window.o: $(LIBS)window.cpp $(LIBS)window.hpp
-	$(CXX) -c $(CXXFLAGS) $(BIN)window.o $(LIBS)window.cpp
+$(BIN)window.o: $(LIBS)window/window.cpp $(LIBS)window/window.hpp
+	$(CXX) -c $(CXXFLAGS) $(BIN)window.o $(LIBS)window/window.cpp
 
 $(BIN)shader.o: $(LIBS)shader.cpp $(LIBS)shader.hpp
 	$(CXX) -c $(CXXFLAGS) $(BIN)shader.o $(LIBS)shader.cpp
