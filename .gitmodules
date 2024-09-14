@@ -1,0 +1,3 @@
+[submodule "window"]
+	path = lib/window
+	url = https://github.com/RyanAllcock/DesktopWindow.git
