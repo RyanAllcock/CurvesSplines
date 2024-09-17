@@ -3,6 +3,7 @@ CXXFLAGS := -o
 
 BIN := temp/
 LIBS := lib/
+SRC := source/
 OUT := deploy/
 LINKS := -lopenGL32 -lmingw32 -lSDL2main -lSDL2 -lglew32
 OBJECTS := $(BIN)camera.o $(BIN)window.o $(BIN)shader.o $(BIN)curve.o
@@ -20,8 +21,8 @@ $(BIN)window.o: $(LIBS)window/window.cpp $(LIBS)window/window.hpp
 $(BIN)shader.o: $(LIBS)shader.cpp $(LIBS)shader.hpp
 	$(CXX) -c $(CXXFLAGS) $(BIN)shader.o $(LIBS)shader.cpp
 
-$(BIN)curve.o: $(LIBS)curve.cpp $(LIBS)curve.hpp
-	$(CXX) -c $(CXXFLAGS) $(BIN)curve.o $(LIBS)curve.cpp
+$(BIN)curve.o: $(SRC)curve.cpp $(SRC)curve.hpp
+	$(CXX) -c $(CXXFLAGS) $(BIN)curve.o $(SRC)curve.cpp
 
 prepare:
 	mkdir $(BIN) $(OUT)

@@ -1,3 +1,7 @@
 [submodule "window"]
 	path = lib/window
 	url = https://github.com/RyanAllcock/DesktopWindow.git
+[submodule "CurvesSplines"]
+	path = source
+	url = https://github.com/RyanAllcock/CurvesSplines.git
+	branch = source
