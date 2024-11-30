@@ -61,37 +61,9 @@ Branch into 3D space to prioritise representing and rasterising free-form surfac
 - Types of splines, e.g. https://en.wikipedia.org/wiki/Composite_B%C3%A9zier_curve, https://en.wikipedia.org/wiki/B-spline
 - Types of surface, e.g. https://en.wikipedia.org/wiki/B%C3%A9zier_surface
 
-<!-- ### Logical & Debugging -->
-
 ### Completion
 Overall: allow the display of any continuous curves/surfaces representable as data inside wavefront files
 - 3D curves
 - bezier surfaces
 - more fundamental curve/spline types; e.g. Hermite, NURBS (delay ones not used in .obj files)
 - read & write data from .obj files (wavefront file structure)
-
-### Feature
-- higher continuity options for cubic+ curves... highest-possible continuity for a specific and/or evenly-sized curve size? incremental continuities up to "Cn", n = curve points(?)?
-- solve optimal sample point positions along curve, to minimise angle (error) across each pair of adjacent sample lines, to a limit of sample total or maximum error (can set either)
-- enable geometric pattern generation, e.g. https://en.wikipedia.org/wiki/String_art
-
-### Quality Of Life
-- allow altering of piecePoints variable using input for bezierCurves2
-- harsh bezierCurves2 angles still pinched; smoothly represent, possibly by separating each spline piece in graphics? use EBO and geometry shaders to store vertex data more compact?
-- billboard shading; always point towards camera
-- relative displacement straight line rendering for vector shader
-- remove whiteflash on first window frame; prevented on WIN32 by suppressing WM_ERASEBKGND message or setting hdr_background to NULL; how to suppress for SDL?
-	- https://stackoverflow.com/questions/10335488/white-flash-when-creating-an-opengl-render-context-on-windows
-	- https://stackoverflow.com/questions/12073721/what-is-the-correct-way-to-suppress-wm-erasebkgnd
-- data management & storage structure, for conducting atomic operations (e.g. add/remove points and curves whilst updating gpu data) in an enclosed/elegant fashion
-- smart shading template structures for point-/line-/vector- -renderers/-rendering, to reduce boilerplate renderer & gpu data code
-
-### Optimise
-- eventually only compute the changed parts of data during input
-- pre-compute vectors for vector shader... worth having extra buffer for vector data?
-- limit update ranges for spline data by splitting curve vector into spline vector of curve vectors
-	- store data indices & update signals in separate vectors; use these to flag which curves to update data & buffers for after each input
-	- interchange curve & spline indices; curve indices are on same buffer, spline indices use 
-
-### Optional
-- convert window position & motion to [-/+ xAspectRatio, -/+ yAspectRatio]; maybe automatically compute this change inside window by holding "viewport" as a member variable?
