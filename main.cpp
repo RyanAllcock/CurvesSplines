@@ -2,7 +2,7 @@
 #include "lib/window/window.hpp" // windowing
 #include "lib/camera.hpp" // viewport
 #include "lib/shader.hpp" // shader program
-#include "source/curve.hpp" // curves & splines
+#include "source/spline.hpp" // curves & splines
 
 #include "util/filemanager.hpp" // shader source
 
@@ -27,45 +27,22 @@
 #define VECTOR_THICKNESS .005f
 #define VECTOR_LENGTH .1f
 
-// bezier curve constants
-#define TOTAL_BEZIER_SAMPLES 20
-#define CUBIC_BEZIER_SAMPLES 8
+// sampler constants
+#define SAMPLER_CONSTANT_RESOLUTION 5
+#define SAMPLER_SPATIAL_MAXLENGTH .05f
+#define SAMPLER_CURVATURE_MAXDIST .05f
+#define SAMPLER_CURVATURE_MAXANGLE 5.f
 
-// options
-enum RenderType{ RenderCurve, RenderCubic };
-enum BezierType{ BezierCurve, BezierSpline };
+// curve constants
+#define CURVE_MAXIMUM_SAMPLES 20
+#define SPLINE_MAXIMUM_SAMPLES 8
 
 // input
 enum ProgramInput{
 	InputPlace, InputRemove, // control points
-	InputContinuity, InputCurve // spline
+	InputSampler, // curve
+	InputSpline // spline
 };
-
-void recomputeCurve(
-		BezierType bezierType, RenderType renderType, // choices
-		std::vector<float> const &controlPoints, std::vector<float> &samplePoints, std::vector<float> &sampleVectors, // data
-		DrawArray &vectorDirectionDraw, DrawArray &lineDraw){ // drawing
-	switch(bezierType){
-		case BezierCurve:
-			samplePoints = bezierCurve2(controlPoints, TOTAL_BEZIER_SAMPLES);
-			break;
-		case BezierSpline:
-			switch(renderType){
-				case RenderCurve:
-					samplePoints = bezierCurves2(controlPoints, 4, CUBIC_BEZIER_SAMPLES);
-					break;
-				case RenderCubic:
-					std::vector<float> controlVectors = pointVectors2(controlPoints, 2);
-					samplePoints = bezierCubic2(controlPoints, controlVectors, CUBIC_BEZIER_SAMPLES);
-					vectorDirectionDraw.recount(controlPoints.size() / 4);
-					break;
-			}
-			break;
-	}
-	if(samplePoints.size() / 2 > MAX_LINES) samplePoints.resize(MAX_LINES * 2);
-	sampleVectors = lineVectors2(samplePoints);
-	lineDraw.recount(samplePoints.size() / 2 - 1);
-}
 
 void displayCurve(std::vector<Renderer*> const renderers, Window const &window){
 	window.clear();
@@ -75,26 +52,40 @@ void displayCurve(std::vector<Renderer*> const renderers, Window const &window){
 
 int main(int argc, char *argv[]){
 	
-	// options
-	RenderType renderType = RenderCurve;
-	BezierType bezierType = BezierCurve;
-	
-	// initial data
-	std::vector<float> controlPoints{
+	// input
+	std::vector<float> initialPoints{
 		0, 0, 
 		1, 0, 
 		0, .5f, 
 		.5f, 1, 
 		1, .5f
 	};
-	std::vector<float> samplePoints = bezierCurve2(controlPoints, TOTAL_BEZIER_SAMPLES);
-	std::vector<float> sampleVectors = lineVectors2(samplePoints);
+	
+	// samplers
+	CurveSampler_Constant samplerConstant(SAMPLER_CONSTANT_RESOLUTION, CURVE_MAXIMUM_SAMPLES);
+	CurveSampler_Spatial samplerSpatial(SAMPLER_SPATIAL_MAXLENGTH, CURVE_MAXIMUM_SAMPLES);
+	CurveSampler_Curvature samplerCurvature(SAMPLER_CURVATURE_MAXANGLE, SAMPLER_CURVATURE_MAXDIST, CURVE_MAXIMUM_SAMPLES);
+	std::vector<CurveSampler*> samplers{ &samplerConstant, &samplerSpatial, &samplerCurvature };
+	std::vector<CurveSampler*>::iterator currentSampler = samplers.begin();
+	
+	// splines
+	SplineType_Bezier bezierCurve;
+	SplineType_BezierDegree bezierCubicSpline(2, 0);
+	SplineType_BezierDegree bezierCubicHandledSpline(2, 1);
+	std::vector<SplineType*> splines{ &bezierCurve, &bezierCubicSpline, &bezierCubicHandledSpline };
+	std::vector<SplineType*>::iterator currentSpline = splines.begin();
+	(*currentSpline)->set(initialPoints);
+	
+	// point & line data
+	SplineData splineData;
+	splineData.setPoints((*currentSpline)->points());
+	splineData.setSamples((*currentSpline)->samplePoints(**currentSampler));
 	
 	// window
-	Window window("Curves", WindowGraphic, WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_PERSEC, INPUT_PERSEC);
+	Window window("Splines", WindowGraphic, WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_PERSEC, INPUT_PERSEC);
 	InputBind input(window.getMouseMotionHandle(), window.getMousePositionHandle());
 	input.bindAll(std::vector<std::pair<int,WindowKey>>{
-		{InputContinuity, KeyC}, {InputCurve, KeyS}}, window);
+		{InputSpline, KeyS}, {InputSampler, KeyC}}, window);
 	input.bindAll(std::vector<std::pair<int,WindowButton>>{
 		{InputPlace, MouseLeftClick}, {InputRemove, MouseRightClick}}, window);
 	float viewport[2];
@@ -125,30 +116,30 @@ int main(int argc, char *argv[]){
 	Index quadIndex(quadBuffer, 2, IndexFloat, IndexUnchanged, sizeof(float) * 2, 0);
 	
 	// point renderer
-	Buffer pointBuffer(BufferStream, controlPoints.data(), sizeof(float) * MAX_VERTICES * 2);
+	Buffer pointBuffer(BufferStream, splineData.points.data(), sizeof(float) * MAX_VERTICES * 2);
 	Index pointIndex(pointBuffer, 2, IndexFloat, IndexUnchanged, sizeof(float) * 2, 0);
 	Program pointProgram(std::vector<Shader*>{ &pointVertexShader, &pointFragmentShader });
-	DrawInstancedArray pointDraw(DrawTriangle, std::vector<Index*>{ &quadIndex }, quad.size() / 2, std::vector<Index*>{ &pointIndex }, controlPoints.size() / 2);
+	DrawInstancedArray pointDraw(DrawTriangle, std::vector<Index*>{ &quadIndex }, quad.size() / 2, std::vector<Index*>{ &pointIndex }, splineData.points.size() / 2);
 	
 	// line segment renderer
-	Buffer linePositionBuffer(BufferStream, samplePoints.data(), sizeof(float) * MAX_LINES * 2);
-	Buffer lineDirectionBuffer(BufferStream, sampleVectors.data(), sizeof(float) * MAX_LINES * 2);
+	Buffer linePositionBuffer(BufferStream, splineData.samplePoints.data(), sizeof(float) * MAX_LINES * 2);
+	Buffer lineDirectionBuffer(BufferStream, splineData.sampleVectors.data(), sizeof(float) * MAX_LINES * 2);
 	Index linePosition0Index(linePositionBuffer, 2, IndexFloat, IndexUnchanged, sizeof(float) * 2, 0);
 	Index lineDirection0Index(lineDirectionBuffer, 2, IndexFloat, IndexUnchanged, sizeof(float) * 2, 0);
 	Index linePosition1Index(linePositionBuffer, 2, IndexFloat, IndexUnchanged, sizeof(float) * 2, (void*)(sizeof(float) * 2));
 	Index lineDirection1Index(lineDirectionBuffer, 2, IndexFloat, IndexUnchanged, sizeof(float) * 2, (void*)(sizeof(float) * 2));
 	Program lineProgram(std::vector<Shader*>{ &lineVertexShader, &lineFragmentShader });
 	DrawInstancedArray lineDraw(DrawTriangle, std::vector<Index*>{ &quadIndex }, quad.size(), 
-		std::vector<Index*>{ &linePosition0Index, &lineDirection0Index, &linePosition1Index, &lineDirection1Index }, samplePoints.size() / 2 - 1);
+		std::vector<Index*>{ &linePosition0Index, &lineDirection0Index, &linePosition1Index, &lineDirection1Index }, splineData.samplePoints.size() / 2 - 1);
 	
 	// vector renderer
 	Index vectorPosition0Index(pointBuffer, 2, IndexFloat, IndexUnchanged, sizeof(float) * 4, 0);
 	Index vectorPosition1Index(pointBuffer, 2, IndexFloat, IndexUnchanged, sizeof(float) * 4, (void*)(sizeof(float) * 2));
 	Program vectorProgram(std::vector<Shader*>{ &vectorVertexShader, &vectorFragmentShader });
 	DrawInstancedArray vectorPointDraw(DrawTriangle, std::vector<Index*>{ &quadIndex }, quad.size() / 2, 
-		std::vector<Index*>{ &vectorPosition0Index }, controlPoints.size() / 4);
+		std::vector<Index*>{ &vectorPosition0Index }, splineData.points.size() / 4);
 	DrawInstancedArray vectorDirectionDraw(DrawTriangle, std::vector<Index*>{ &quadIndex }, quad.size(),
-		std::vector<Index*>{ &vectorPosition0Index, &vectorPosition1Index }, controlPoints.size() / 4);
+		std::vector<Index*>{ &vectorPosition0Index, &vectorPosition1Index }, splineData.points.size() / 4);
 	
 	// renderers
 	std::vector<Renderer> renderers{
@@ -177,7 +168,7 @@ int main(int argc, char *argv[]){
 	lineProgram.setUniform("line_thickness", DataFloat(LINE_THICKNESS));
 	
 	// first display
-	displayCurve(currentRenderers[renderType], window);
+	displayCurve(currentRenderers[0], window);
 	bool isDataOutdated = false;
 	
 	// loop
@@ -203,7 +194,7 @@ int main(int argc, char *argv[]){
 		// input
 		if(window.cap(WindowInput)){
 			
-			// place control point
+			// push point
 			if(input.getPress(InputPlace)){
 				
 				// position
@@ -212,54 +203,69 @@ int main(int argc, char *argv[]){
 				placeAt[0] *= viewport[0];
 				placeAt[1] *= viewport[1];
 				
-				// update
-				if(controlPoints.size() / 2 < MAX_VERTICES){
-					controlPoints.push_back(placeAt[0]);
-					controlPoints.push_back(placeAt[1]);
-					pointDraw.recount(controlPoints.size() / 2);
-					vectorPointDraw.recount(controlPoints.size() / 4);
+				// add
+				if((*currentSpline)->getTotalPoints() < MAX_VERTICES){
+					(*currentSpline)->pushKnot(placeAt[0], placeAt[1]);
+					splineData.setPoints((*currentSpline)->points());
+					pointDraw.recount(splineData.points.size() / 2);
+					vectorPointDraw.recount(splineData.points.size() / 4);
 				}
+				
+				// move
 				else{
-					controlPoints[(MAX_VERTICES - 1) * 2 + 0] = placeAt[0];
-					controlPoints[(MAX_VERTICES - 1) * 2 + 1] = placeAt[1];
+					(*currentSpline)->moveKnot(-1, placeAt[0], placeAt[1]);
+					splineData.setPoints((*currentSpline)->points());
 				}
-				pointBuffer.update(&placeAt, sizeof(float) * 2, sizeof(float) * (controlPoints.size() / 2 - 1) * 2);
+				
+				// update
+				(*currentSpline)->getLastPoint(placeAt[0], placeAt[1]);
+				pointBuffer.update(&placeAt[0], sizeof(float) * 2, sizeof(float) * (splineData.points.size() / 2 - 1) * 2);
 				isDataOutdated = true;
-				printf("Added control point %i\n", controlPoints.size() / 2);
+				printf("Added point %i\n", splineData.points.size() / 2);
 			}
 			
-			// remove control point
+			// pop point
 			if(input.getPress(InputRemove)){
-				if(!controlPoints.empty()){
-					controlPoints.pop_back();
-					controlPoints.pop_back();
-					pointDraw.recount(controlPoints.size() / 2);
-					vectorPointDraw.recount(controlPoints.size() / 4);
+				if(!(*currentSpline)->knots.empty()){
+					(*currentSpline)->popKnot();
+					splineData.setPoints((*currentSpline)->points());
+					pointDraw.recount(splineData.points.size() / 2);
+					vectorPointDraw.recount(splineData.points.size() / 4);
 					isDataOutdated = true;
-					printf("Removed control point %i\n", controlPoints.size() / 2);
+					printf("Removed point %i\n", splineData.points.size() / 2);
 				}
 			}
 			
-			// toggle spline continuity
-			if(input.getPress(InputContinuity)){
-				renderType = (renderType == RenderCurve ? RenderCubic : RenderCurve);
+			// toggle curve sampler
+			if(input.getPress(InputSampler)){
+				currentSampler++;
+				if(currentSampler == samplers.end()) currentSampler = samplers.begin();
 				isDataOutdated = true;
-				printf("Toggled spline continuity\n");
+				printf("Toggled curve sampler\n");
 			}
 			
-			// toggle between curve and spline
-			if(input.getPress(InputCurve)){
-				bezierType = (bezierType == BezierCurve ? BezierSpline : BezierCurve);
+			// toggle spline type
+			if(input.getPress(InputSpline)){
+				std::vector<float> points = (*currentSpline)->points();
+				currentSpline++;
+				if(currentSpline == splines.end()) currentSpline = splines.begin();
+				if(currentSpline - splines.begin() == 0) (*currentSampler)->setTotal(CURVE_MAXIMUM_SAMPLES);
+				else (*currentSampler)->setTotal(SPLINE_MAXIMUM_SAMPLES);
+				(*currentSpline)->set(points);
+				splineData.setPoints((*currentSpline)->points());
+				pointBuffer.update(splineData.points.data(), sizeof(float) * splineData.points.size(), 0);
 				isDataOutdated = true;
-				printf("Toggled between curve and spline\n");
+				printf("Toggled spline type\n");
 			}
 			
-			// update curve
+			// update sample curve
 			if(isDataOutdated){
-				recomputeCurve(bezierType, renderType, controlPoints, samplePoints, sampleVectors, vectorDirectionDraw, lineDraw);
-				linePositionBuffer.update(samplePoints.data(), sizeof(float) * samplePoints.size(), 0);
-				lineDirectionBuffer.update(sampleVectors.data(), sizeof(float) * samplePoints.size(), 0);
-				displayCurve(currentRenderers[renderType], window);
+				splineData.setSamples((*currentSpline)->samplePoints(**currentSampler));
+				lineDraw.recount(splineData.samplePoints.size() / 2 - 1);
+				vectorDirectionDraw.recount(splineData.points.size() / 4);
+				linePositionBuffer.update(splineData.samplePoints.data(), sizeof(float) * splineData.samplePoints.size(), 0);
+				lineDirectionBuffer.update(splineData.sampleVectors.data(), sizeof(float) * splineData.samplePoints.size(), 0);
+				displayCurve(currentRenderers[0], window);
 				isDataOutdated = false;
 			}
 		}
