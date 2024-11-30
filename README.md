@@ -55,7 +55,7 @@ Samplers are used to give control over how samples are extracted from an analyti
 - Curvature: sample points by constraining the angles between each set of three adjacent points, as well as the distance from sampled points to the line drawn between their neighbours (the discrepancy in positional correctness, were that point not have been sampled, is thus limited).
 
 ## Future Work
-- Branch into 3D space to prioritise representing and rasterising free-form surfaces, constructable from data inside .obj files of the wavefront file format.
+Branch into 3D space to prioritise representing and rasterising free-form surfaces, constructable from data inside .obj files of the wavefront file format.
 
 ### Documentation
 - Types of splines, e.g. https://en.wikipedia.org/wiki/Composite_B%C3%A9zier_curve, https://en.wikipedia.org/wiki/B-spline
