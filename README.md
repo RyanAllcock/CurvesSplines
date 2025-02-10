@@ -7,7 +7,7 @@ Generate interpolated graphical splines using points.
 - Place point: left mouse click.
 - Remove last point: right mouse click.
 - Move nearby point: left mouse click and hold with cursor over point, drag to move.
-- Toggle between Bezier curve, composite cubic Bezier spline, and C<sup>1</sup> spline, C<sup>2</sup> natural spline, C<sup>∞</sup> spline, and C<sup>1</sup> cardinal spline: S key.
+- Toggle between Bezier curve, composite cubic Bezier spline, and C<sup>1</sup> spline, natural (C<sup>2</sup>) spline, C<sup>∞</sup> spline, and C<sup>1</sup> cardinal spline: S key.
 - Toggle between constant, spatial, and curvature samplers: C key.
 
 ## Features
